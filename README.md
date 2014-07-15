@@ -1,4 +1,4 @@
-# grunt-easy-rpm
+# grunt-rpm-packager
 
 > Easily create RPM package to install files/directories
 
@@ -14,23 +14,23 @@ This plugin requires Grunt `~0.4.1` and can only run in RedHat varient linux dis
 If you haven't used [Grunt](http://gruntjs.com/) before, be sure to check out the [Getting Started](http://gruntjs.com/getting-started) guide, as it explains how to create a [Gruntfile](http://gruntjs.com/sample-gruntfile) as well as install and use Grunt plugins. Once you're familiar with that process, you may install this plugin with this command:
 
 ```shell
-npm install grunt-easy-rpm --save-dev
+npm install grunt-rpm-packager --save-dev
 ```
 
 Once the plugin has been installed, it may be enabled inside your Gruntfile with this line of JavaScript:
 
 ```js
-grunt.loadNpmTasks('grunt-easy-rpm');
+grunt.loadNpmTasks('grunt-rpm-packager');
 ```
 
-## The "easy_rpm" task
+## The "rpm-packager" task
 
 ### Overview
-In your project's Gruntfile, add a section named `easy_rpm` to the data object passed into `grunt.initConfig()`.
+In your project's Gruntfile, add a section named `rpm_package` to the data object passed into `grunt.initConfig()`.
 
 ```js
 grunt.initConfig({
-  easy_rpm: {
+  rpm_package: {
     options: {
       // Task-specific options go here.
     },
@@ -161,7 +161,7 @@ In this example, the default options are used for most of the fields. Each file 
 
 ```js
 grunt.initConfig({
-  easy_rpm: {
+  rpm_package: {
     options: {
       name: "mypackage",
       version: "1.0.0",
@@ -184,7 +184,7 @@ In this example, Each file are copied individually. The "cwd" attribute is used 
 
 ```js
 grunt.initConfig({
-  easy_rpm: {
+  rpm_package: {
     options: {
       name: "mypackage",
       version: "1.0.0",
@@ -207,7 +207,7 @@ The file list is generated using node-glob so please find more info about the wi
 
 ```js
 grunt.initConfig({
-  easy_rpm: {
+  rpm_package: {
     options: {
       name: "mypackage",
       version: "1.0.0",
@@ -228,7 +228,7 @@ In this example, the mode/owner/group of each target file can be set using mode/
 
 ```js
 grunt.initConfig({
-  easy_rpm: {
+  rpm_package: {
     options: {
       name: "mypackage",
       version: "1.0.0",
@@ -252,7 +252,7 @@ In this example, the %doc or %config flag of each target file can be set
 
 ```js
 grunt.initConfig({
-  easy_rpm: {
+  rpm_package: {
     options: {
       name: "mypackage",
       version: "1.0.0",
@@ -275,7 +275,7 @@ To exlude files from the file list assign an array to the "excludeFiles" attribu
 
 ```js
 grunt.initConfig({
-  easy_rpm: {
+  rpm_package: {
     options: {
       name: "mypackage",
       version: "1.0.0",

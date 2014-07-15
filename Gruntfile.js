@@ -1,5 +1,5 @@
 /*
- * grunt-easy-rpm
+ * grunt-rpm-packager
  * https://github.com/panitw/easy-rpm
  *
  * Copyright (c) 2013 Panit Wechasil
@@ -29,7 +29,7 @@ module.exports = function(grunt) {
     },
 
     // Configuration to be run (and then tested).
-    easy_rpm: {
+    rpm_package: {
       default_options: {
         options: {
           version: "v1.0.0",
@@ -62,7 +62,7 @@ module.exports = function(grunt) {
 
   // Whenever the "test" task is run, first clean the "tmp" dir, then run this
   // plugin's task(s), then test the result.
-  grunt.registerTask('test', ['clean', 'easy_rpm', 'nodeunit']);
+  grunt.registerTask('test', ['clean', 'rpm_package', 'nodeunit']);
 
   // By default, lint and run all tests.
   grunt.registerTask('default', ['jshint', 'test']);

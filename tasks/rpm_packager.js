@@ -1,6 +1,6 @@
 /*
- * grunt-easy-rpm
- * https://github.com/panitw/easy-rpm
+ * grunt-rpm-packager
+ * https://github.com/messagesystems/rpm-packager
  *
  * Copyright (c) 2013 Panit Wechasil
  * Licensed under the MIT license.
@@ -8,32 +8,27 @@
 
 'use strict';
 
-var shortid = require("shortid"),
-  path = require("path");
+var shortid = require("shortid");
+var path = require("path");
 
 function writeSpecFile(grunt, files, options) {
 
-    var pkgName = options.name + "-" + options.version + "-" + options.buildArch,
-      specFilepath = path.join(options.tempDir, "SPECS", pkgName + ".spec"),
-      b = [],
-      i = 0;
-    
-    b.push("%define   _topdir " + path.resolve(options.tempDir));
+    var pkgName = options.name+"-"+options.version+"-"+options.buildArch;
+    var specFilepath = path.join(options.tempDir, "SPECS", pkgName+".spec");
+
+    var b = [];
+    var i = 0;
+    b.push("%define   _topdir "+path.resolve(options.tempDir));
     b.push("");
     b.push("Name: "+options.name);
     b.push("Version: "+options.version);
     b.push("Release: "+options.release);
-    b.push("Group: "+options.group);
     b.push("Summary: "+options.summary);
-    b.push("Group: "+options.group);
     b.push("License: "+options.license);
     b.push("BuildArch: "+options.buildArch);
-    if (typeof options.autoReqProv !== "undefined") {
-        b.push("AutoReqProv: "+options.autoReqProv);
-    }
 
     if (options.dependencies.length > 0) {
-      b.push("Requires: " + options.dependencies.join(","));
+      b.push("Requires: "+ options.dependencies.join(","));
     }
 
     b.push("");
@@ -42,31 +37,26 @@ function writeSpecFile(grunt, files, options) {
     b.push("");
     b.push("%files");
     for (i=0;i<files.length;i++) {
-       if (files[i].indexOf('%') === 0) {
-         b.push(files[i]);
-       }
-       else {
-         b.push("\""+files[i]+"\"");
-       }
+      b.push("\""+files[i]+"\"");
     }
     b.push("");
     b.push("%pre");
-    for (i=0; i<options.preInstallScript.length; i++) {
+    for (i=0;i<options.preInstallScript.length;i++) {
       b.push(options.preInstallScript[i]);
     }
     b.push("");
     b.push("%post");
-    for (i=0; i<options.postInstallScript.length; i++) {
+    for (i=0;i<options.postInstallScript.length;i++) {
       b.push(options.postInstallScript[i]);
     }
     b.push("");
     b.push("%preun");
-    for (i=0; i<options.preUninstallScript.length; i++) {
+    for (i=0;i<options.preUninstallScript.length;i++) {
       b.push(options.preUninstallScript[i]);
     }
     b.push("");
     b.push("%postun");
-    for (i=0; i<options.postUninstallScript.length; i++) {
+    for (i=0;i<options.postUninstallScript.length;i++) {
       b.push(options.postUninstallScript[i]);
     }
 
@@ -79,8 +69,11 @@ function writeSpecFile(grunt, files, options) {
 
 module.exports = function(grunt) {
 
-  grunt.registerMultiTask("easy_rpm", "Easily create RPM package to install files/directories", function() {
+  grunt.registerMultiTask("rpm_package", "Easily create RPM package to install files/directories", function() {
 
+    var done = this.async();
+
+    // Merge task-specific and/or target-specific options with these defaults.
     var options = this.options({
       name: "noname",
       summary: "No Summary",
@@ -97,7 +90,6 @@ module.exports = function(grunt) {
       preUninstallScript: [],
       postUninstallScript: [],
       tempDir: "tmp-"+shortid.generate(),
-      rpmDestination: ".",
       keepTemp: false
     });
 
@@ -117,14 +109,6 @@ module.exports = function(grunt) {
       grunt.file.mkdir(tmpDir+"/"+rpmStructure[i]);
     }
 
-    //Files to exclude
-    var filesToExclude = [];
-    if (this.data.excludeFiles) {
-      filesToExclude = grunt.file.expand(this.data.excludeFiles).map(function (fileName) {
-        return path.normalize(fileName);
-      });
-    }
-
     //Copy source to the BUILDROOT folder
     grunt.log.writeln("Copying files to tmp directory");
     var fileBasket = [];
@@ -139,59 +123,39 @@ module.exports = function(grunt) {
       file.src.filter(function(srcPath) {
         var actualSrcPath = srcPath;
 
-        //check whether to ignore this file        
-        if (filesToExclude.indexOf(actualSrcPath) >= 0) {
-          return false;
-        }
-
         //If the CWD option is specified, look for each file from CWD path
         if (file.cwd) {
           actualSrcPath = path.join(file.cwd, srcPath);
         }
 
-        var copyTargetPath = path.join(buildRoot, file.dest, srcPath);
-        var actualTargetPath = path.join(file.dest, srcPath);
-
         //Copy file to the BUILDROOT directory and store the actual target path
         //for generating the SPEC file
         if (!grunt.file.isDir(actualSrcPath)) {
           grunt.verbose.writeln("Copying: " + actualSrcPath);
+          var copyTargetPath = path.join(buildRoot, file.dest, srcPath);
           grunt.file.copy(actualSrcPath, copyTargetPath);
 
           //Generate actualTargetPath and save to filebasket for later use
-          var actualTargetPath = "\"" + path.join(file.dest, srcPath) + "\"";
-
-          if (file.config) {
-            fileBasket.push("%config " + actualTargetPath);
-          } else if (file.doc) {
-            fileBasket.push("%doc " + actualTargetPath);
-          } else {
-            fileBasket.push(actualTargetPath);
-          }
+          var actualTargetPath = path.join(file.dest, srcPath);
+          fileBasket.push(actualTargetPath);
 
           //If "mode" property is defined, then add the post install script to change
           //the mode of the file
           if (file.mode) {
-            options.postInstallScript.push("chmod "+file.mode+" "+actualTargetPath);
+            options.postInstallScript.push("chmod "+file.mode+" '"+actualTargetPath+"'");
           }
 
           //If "owner" property is defined, then add the post install script to change
           //the owner of the file
           if (file.owner) {
-            options.postInstallScript.push("chown "+file.owner+" "+actualTargetPath);
+            options.postInstallScript.push("chown "+file.owner+" '"+actualTargetPath+"'");
           }
 
           //If "group" property is defined, then add the post install script to change
           //the group of the file
           if (file.group) {
-            options.postInstallScript.push("chgrp "+file.group+" "+actualTargetPath);
+            options.postInstallScript.push("chgrp "+file.group+" '"+actualTargetPath+"'");
           }
-        }
-        else {
-           // save to filebasket for later use
-           grunt.verbose.writeln("Creating directory: " + actualSrcPath);
-           grunt.file.mkdir(copyTargetPath);
-           fileBasket.push('%dir \"' + actualTargetPath + '\"');
         }
       });
     });
@@ -202,63 +166,47 @@ module.exports = function(grunt) {
 
     //Build RPM
     grunt.log.writeln("Building RPM package");
+    grunt.util.async.series([
 
-    //spawn rpmbuilt tool
-    var buildCmd = "rpmbuild";
-    var buildArgs = [
-      "-bb",
-      "--buildroot",
-      buildRoot,
-      specFilepath
-    ];
-
-    grunt.log.writeln("Execute: "+buildCmd+" "+buildArgs.join(" "));
-
-    grunt.util.spawn({
-      cmd: buildCmd,
-      args: buildArgs,
-    }, function(error, result, code) {
-      if (!error) {
+      //spawn rpmbuilt tool
+      function(callback) {
+        var buildCmd = "rpmbuild";
+        var buildArgs = [
+          "-bb",
+          "--buildroot",
+          buildRoot,
+          specFilepath
+        ];
+        grunt.log.writeln("Execute: "+buildCmd+" "+buildArgs.join(" "));
+        grunt.util.spawn({
+          cmd: buildCmd,
+          args: buildArgs,
+        }, callback);
+      },
+      function(callback) {
         //Copy the build output to the current directory
         var outputFilename = options.name+"-"+options.version+"-"+options.release+"."+options.buildArch+".rpm";
         var outputFilepath = path.join(tmpDir, "RPMS", options.buildArch, outputFilename);
         grunt.log.writeln("Copy output RPM package to the current directory: "+outputFilepath);
-        var rpmDestination = path.resolve(options.rpmDestination);
-        grunt.file.copy(outputFilepath, path.join(rpmDestination, outputFilename));
-      }
+        grunt.file.copy(outputFilepath,"./"+outputFilename);
 
-      //Execute the postPackageCreate callback
-      if (options.postPackageCreate){
-        var rpmFilename = options.name + "-" + options.version + "-" + options.release + "." + options.buildArch + ".rpm";
-        var rpmPath = path.join(tmpDir, "RPMS", options.buildArch);
-
-        if (typeof options.postPackageCreate === "string"){
-          if (grunt.file.isDir(options.postPackageCreate)){
-            var destinationFile = path.join(options.postPackageCreate, rpmFilename);
-            grunt.file.copy(path.join(rpmFilename,rpmFilename) , destinationFile);
-            grunt.log.writeln("Copied output RPM package to: " + destinationFile);
-          }
-          else {
-            grunt.fail.warn('Destination path is not a directory');
-          }
+        //Delete temp folder
+        if (!options.keepTemp) {
+          grunt.log.writeln("Deleting tmp folder "+tmpDir);
+          grunt.file.delete(tmpDir);
         }
-        else if (typeof options.postPackageCreate === "function"){
-          options.postPackageCreate(rpmPath, rpmFilename);
-        }
-      }      
 
-      //Delete temp folder
-      if (!options.keepTemp) {
-        grunt.log.writeln("Deleting tmp folder "+tmpDir);
-        grunt.file.delete(tmpDir);
+        callback();
       }
-
-      if (error) {
-        grunt.log.error(result);
-        grunt.warn("Failed while building RPM", code);
+    ],
+    function (err) {
+      if (!err) {
+        done();
+      } else {
+        grunt.log.error(err);
+        done(false);
       }
-
-      done();
     });
+
   });
 };
